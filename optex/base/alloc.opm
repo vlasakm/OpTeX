@@ -86,11 +86,12 @@
 \_public \newinsert ;
 
    \_doc -----------------------------
-   Other allocation macros \`\newattribute` and \`\newcatodetable`
+   Other allocation macros \`\newattribute` and \`\newcatcodetable`
    have their counter allocated by the `\newcount` macro.
    \_cod -----------------------------
 
-\_newcount \_attributealloc  \_attributealloc=0 
+% \attribute0 is reserved by ConTeXt's fontloader
+\_newcount \_attributealloc  \_attributealloc=0
 \_chardef\_maiattribute=\_maicount
 \_def\_newattribute #1{\_allocator #1{attribute}\_attributedef}
 
