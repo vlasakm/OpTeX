@@ -65,15 +65,16 @@
    \_sdef{_lan:#4}{#1}\_lowercase{\_sdef{_ulan:#3}}{#1}%
    \_def\_next{\_ea\_noexpand\_csname _#1lang\_endcsname}
    \_ea\_edef \_csname _#1lang\_endcsname {%
-      \_lowercase{\_noexpand\_loadpattrs #2} #4 % loads patterns
+      \_noexpand\_loadpattrs #2 #4 % loads patterns
       % re-defines itself
       \_gdef\_next{\_noexpand\_uselang{#1}{\_csname _#1Patt\_endcsname}#5}%
       \_next                                   %  runs itself in processing state
    }
    \_addto\_langlist{ #1(#3)}%
-   \_sdef{#1lang}{\_csname _#1lang\_endcsname}% unprefixed \<isocode>lang
+   \_sdef{#1lang\_ea}\_ea{\_csname _#1lang\_endcsname}% unprefixed \<isocode>lang
 }
 \_def\_loadpattrs#1 #2 {%
+   \_wlog{Loading hyphenation: #1 #2}%
    \_directlua{
       local function read_file(name)
          local file = assert(kpse.find_file(name), "Can't find hyphenation "..
@@ -81,6 +82,8 @@
                "installed?")
          local f = assert(io.open(file, "r"))
          local data = assert(f:read("*a"))
+         f:close()
+         return data
       end
 
       local l = lang.new(#2)
