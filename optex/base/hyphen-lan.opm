@@ -77,7 +77,7 @@
    \_wlog{Loading hyphenation: #1 #2}%
    \_directlua{
       local function read_file(name)
-         local file = assert(kpse.find_file(name), "Can't find hyphenation "..
+         local file = kpse.find_file(name) or tex.error("Can't find hyphenation "..
                "file '"..name.."', perhaps you don't have the right package "..
                "installed?")
          local f = assert(io.open(file, "r"))
