@@ -18,8 +18,8 @@
 
 \_def\_initunifonts {%
    \directlua{%
-      require('ltluatex-optex')
-      require('luaotfload-main') local _void = luaotfload.main ()
+      require('luaotfload-main')
+      luaotfload.main()
    }%
    \_gdef\_rfskipatX ##1" ##2\_relax{"##1"}% 
    \_global\_let \_doresizefont=\_doresizeunifont
