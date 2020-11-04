@@ -1,53 +1,67 @@
-luatexbase = luatexbase or {}
+-- This file implements part of the functionality from "luatexbase" namespace,
+-- nowadays defined by LaTeX kernel. "luatexbase" deals with modules,
+-- allocators and callback management. Callback management is a nice extension
+-- and is actually used in OpTeX. Other functions are defined more or less just
+-- to suit luaotfload's use.
 
--- for a \XXdef'd csname return corresponding register number
-function luatexbase.registernumber(name)
+-- GENERAL
+
+-- Error function used by following functions for critical errors.
+local function err(message)
+    error("\nerror: "..message.."\n")
+end
+
+-- For a \chardef'd, \countdef'd, etc., csname return corresponding register
+-- number. The responsibility of providing a \XXdef'd name is on the caller.
+function registernumber(name)
     return token.create(name).index
 end
 
--- an attribute allocator in Lua that cooperates with normal OpTeX allocator
-luatexbase.attributes = {}
-local attribute_max = luatexbase.registernumber("_maiattribute")
-function luatexbase.new_attribute(name)
+-- ALLOCATORS
+alloc = alloc or {}
+
+-- An attribute allocator in Lua that cooperates with normal OpTeX allocator.
+local attributes = {}
+local attribute_max = registernumber("_maiattribute")
+function alloc.new_attribute(name)
     local cnt = tex.count["_attributealloc"] + 1
     if cnt > attribute_max then
-        tex.error("No room for new attribute")
+        tex.error("No room for a new attribute")
     else
         tex.setcount("global", "_attributealloc", cnt)
-        luatexbase.attributes[name] = cnt
+        texio.write_nl("log", '"'..name..'"=\\attribute'..tostring(cnt))
+        attributes[name] = cnt
         return cnt
     end
 end
 
-luatexbase.info = "log"
-function luatexbase.module_info(module, message)
-    if luatexbase.info then
-        texio.write_nl(luatexbase.info, module.." info: "..message)
-    end
+-- CALLBACKS
+callback = callback or {}
+
+-- Save callback.register function for internal use.
+local callback_register = callback.register
+function callback.register(name, fn)
+    err("direct registering of callbacks is forbidden, use 'callback.add_to_callback'")
 end
 
-luatexbase.warning = "term and log"
-function luatexbase.module_warning(module, message)
-    if luatexbase.warning then
-        texio.write_nl(luatexbase.warning, module.." info: "..message)
-    end
-end
-
-function luatexbase.module_error(module, message)
-    error("\n"..module.." error: "..message.."\n")
-end
-
-function luatexbase.provides_module(info)
-end
-
-local function err(message)
-    luatexbase.module_error("luatexbase", message)
-end
-
+-- Table with lists of functions for different callbacks.
 local callback_functions = {}
-local user_callbacks = {}
+-- Table that maps callback name to a list of descriptions of its added
+-- functions. The order corresponds with callback_functions.
 local callback_description = {}
+
+-- Table used to differentiate user callbacks from standard callbacks. Contains
+-- user callbacks as keys.
+local user_callbacks = {}
+-- Table containing default functions for callbacks, which are called if either
+-- a user created callback is defined, but doesn't have added functions or for
+-- standard callbacks that are "extended" (see mlist_to_hlist and its pre/post
+-- filters below).
+local default_functions = {}
+
+-- Table that maps standard (and later user) callback names to their types.
 local callback_types = {
+    -- file discovery
     find_read_file     = "exclusive",
     find_write_file    = "exclusive",
     find_font_file     = "data",
@@ -62,6 +76,7 @@ local callback_types = {
     find_truetype_file = "data",
     find_type1_file    = "data",
     find_image_file    = "data",
+
     open_read_file     = "exclusive",
     read_font_file     = "exclusive",
     read_vf_file       = "exclusive",
@@ -72,11 +87,13 @@ local callback_types = {
     read_truetype_file = "exclusive",
     read_type1_file    = "exclusive",
     read_opentype_file = "exclusive",
-    find_cidmap_file   = "data",
-    read_cidmap_file   = "exclusive",
+
+    -- data processing
     process_input_buffer  = "data",
     process_output_buffer = "data",
     process_jobname       = "data",
+
+    -- node list processing
     contribute_filter      = "simple",
     buildpage_filter       = "simple",
     build_page_insert      = "exclusive",
@@ -88,23 +105,21 @@ local callback_types = {
     vpack_filter           = "list",
     hpack_quality          = "list",
     vpack_quality          = "list",
-    pre_output_filter      = "list",
     process_rule           = "exclusive",
+    pre_output_filter      = "list",
     hyphenate              = "simple",
     ligaturing             = "simple",
     kerning                = "simple",
     insert_local_par       = "simple",
-    pre_mlist_to_hlist_filter = "list",
     mlist_to_hlist         = "exclusive",
-    post_mlist_to_hlist_filter = "reverselist",
-    new_graf               = "exclusive",
+
+    -- information reporting
     pre_dump             = "simple",
     start_run            = "simple",
     stop_run             = "simple",
     start_page_number    = "simple",
     stop_page_number     = "simple",
     show_error_hook      = "simple",
-    show_warning_message = "simple",
     show_error_message   = "simple",
     show_lua_error_hook  = "simple",
     start_file           = "simple",
@@ -112,52 +127,76 @@ local callback_types = {
     call_edit            = "simple",
     finish_synctex       = "simple",
     wrapup_run           = "simple",
+
+    -- pdf related
     finish_pdffile            = "data",
     finish_pdfpage            = "data",
-    page_objnum_provider      = "data",
     page_order_index          = "data",
     process_pdf_image_content = "data",
-    define_font                     = "exclusive",
-    glyph_info                      = "exclusive",
-    glyph_not_found                 = "exclusive",
-    glyph_stream_provider           = "exclusive",
-    make_extensible                 = "exclusive",
-    font_descriptor_objnum_provider = "exclusive",
+
+    -- font related
+    define_font     = "exclusive",
+    glyph_not_found = "exclusive",
+    glyph_info      = "exclusive",
+
+    -- undocumented
+    glyph_stream_provider = "exclusive",
 }
 
 
-function luatexbase.callback_descriptions(name)
+-- Return a list containing descriptions of added callback functions for
+-- specific callback.
+function callback.callback_descriptions(name)
     return callback_description[name] or {}
 end
 
 local valid_callback_types = {
-    exclusive = true ,
+    exclusive = true,
     simple = true,
     data = true,
     list = true,
     reverselist = true,
 }
 
-function luatexbase.create_callback(name, cbtype, default)
-    if ctype == "exclusive" and not default then
-        err("unable to create exclusive callback '"..name.."', default function is required")
+-- Create a user callback that can only be called manually using
+-- "call_callback". A default function is only needed by "exclusive" callbacks.
+function callback.create_callback(name, cbtype, default)
+    if callback_types[name] then
+        err("cannot create callback '"..name.."' - it already exists")
     elseif not valid_callback_types[cbtype] then
-        err("cannot create callback '"..name.."' with invalid callback type '"..cbtype.."'")
+        err("cannot create callback '"..name.. "' with invalid callback type '"..cbtype.."'")
+    elseif ctype == "exclusive" and not default then
+        err("unable to create exclusive callback '"..name.."', default function is required")
     end
+
     callback_types[name] = cbtype
-    callback_functions[name] = {}
+    default_functions[name] = default or nil
     user_callbacks[name] = true
 end
 
-function luatexbase.add_to_callback(name, fn, description)
-    if user_callbacks[name] then
-        -- user defined callback
+-- Add a function to the list of functions executed when callback is called.
+-- For standard luatex callback a proxy function that calls our machinery is
+-- registered as the real callback function. This doesn't happen for user
+-- callbacks, that are called manually by user using "call_callback" or for
+-- standard callbacks that have default functions - like "mlist_to_hlist" (see
+-- below).
+function callback.add_to_callback(name, fn, description)
+    if user_callbacks[name] or callback_functions[name] or default_functions[name] then
+        -- either:
+        --  a) user callback - no need to register anything
+        --  b) standard callback that has already been registered
+        --  c) standard callback with default function registered separately
+        --     (mlist_to_hlist)
     elseif callback_types[name] then
-        -- standard luatex callback, register a proxy function as
-        -- a real callback
-        callback.register(name, function(...)
-            return luatexbase.call_callback(name, ...)
-        end)
+        -- This is a standard luatex callback with first function being added,
+        -- register a proxy function as a real callback. Assert, so we know
+        -- when things break, like when callbacks get redefined by future
+        -- luatex.
+        assert(callback_register(name, function(...)
+            return callback.call_callback(name, ...)
+        end))
+    else
+        err("cannot add to callback '"..name.."' - no such callback exists")
     end
 
     -- add function to callback list for this callback
@@ -169,13 +208,65 @@ function luatexbase.add_to_callback(name, fn, description)
     table.insert(callback_description[name], description)
 end
 
-function luatexbase.call_callback(name, ...)
-    local cbtype = callback_types[name]
-    local functions = callback_functions[name] or {}
+-- Remove a function from the list of functions executed when callback is
+-- called. If last function in the list is removed delete the list entirely.
+function callback.remove_from_callback(name, description)
+    local descriptions = callback_description[name]
+    local index
+    for i, desc in ipairs(descriptions) do
+        if desc == description then
+            index = i
+            break
+        end
+    end
 
-    if cbtype == "exclusive" then
-        -- only one function
-        return functions[1] and functions[1](...)
+    table.remove(descriptions, index)
+    local fn = table.remove(callback_functions[name], index)
+
+    if #descriptions == 0 then
+        -- Delete the list entirely to allow easy checking of "truthiness".
+        callback_functions[name] = nil
+
+        if not user_callbacks[name] and not default_functions[name] then
+            -- this is a standard callback with no added functions and no
+            -- default function (i.e. not mlist_to_hlist), restore standard
+            -- behaviour by unregistering.
+            callback_register(name, nil)
+        end
+    end
+
+    return fn, description
+end
+
+-- helper iterator generator for iterating over reverselist callback functions
+local function reverse_ipairs(t)
+    local i, n = #t + 1, 1
+    return function()
+        i = i - 1
+        if i >= n then
+            return i, t[i]
+        end
+    end
+end
+
+-- Call all functions added to callback. This function handles standard
+-- callbacks as well as user created callbacks. It can happen that this
+-- function is called when no functions were added to callback - like for user
+-- created callbacks or "mlist_to_hlist" (see below), these are handled either
+-- by a default function (like for "mlist_to_hlist" and those user created
+-- callbacks that set a default function) or by doing nothing for empty
+-- function list.
+function callback.call_callback(name, ...)
+    local cbtype = callback_types[name]
+    -- either take added functions or the default function if there is one
+    local functions = callback_functions[name] or {default_functions[name]}
+
+    if cbtype == nil then
+        err("cannot call callback '"..name.."' - no such callback exists")
+    elseif cbtype == "exclusive" then
+        -- only one function, atleast default function is guaranteed by
+        -- create_callback
+        return functions[1](...)
     elseif cbtype == "simple" then
         -- call all functions one after another, no passing of data
         for _, fn in ipairs(functions) do
@@ -183,37 +274,29 @@ function luatexbase.call_callback(name, ...)
         end
         return
     elseif cbtype == "data" then
-        -- pass data (first argument) from one function to other,
-        -- while keeping other arguments
-        local args = {...}
-        local data, args = args[1], table.unpack(args, 2)
+        -- pass data (first argument) from one function to other, while keeping
+        -- other arguments
+        local data = (...)
         for _, fn in ipairs(functions) do
-            data = fn(data, ...)
+            data = fn(data, select(2, ...))
         end
         return data
     end
 
     -- list and reverselist are like data, but "true" keeps data (head node)
     -- unchanged and "false" ends the chain immediately
-
-    if #functions == 0 then
-        -- there is no callback function, just return the head as we
-        -- received it
-        return (...)
-    end
-    local start, stop
+    local iter
     if cbtype == "list" then
-        start, stop = 1, #functions
+        iter = ipairs
     elseif cbtype == "reverselist" then
-        start, stop = #functions, 1
+        iter = reverse_ipairs
     end
 
-    local args = {...}
-    local head, args = args[1], table.unpack(args, 2)
+    local head = (...)
     local new_head
     local changed = false
-    for i = start, stop do
-        new_head = functions[i](head, ...)
+    for _, fn in iter(functions) do
+        new_head = fn(head, select(2, ...))
         if new_head == false then
             return false
         elseif new_head ~= true then
@@ -221,12 +304,19 @@ function luatexbase.call_callback(name, ...)
             changed = true
         end
     end
-    return not change or head
+    return not changed or head
 end
 
-callback.register("mlist_to_hlist", function(head, ...)
+-- Create "virtual" callbacks pre/post_mlist_to_hlist_filter by setting
+-- mlist_to_hlist callback. The default behaviour of mlist_to_hlist is kept by
+-- using a default function, but it can still be overriden by using
+-- add_to_callback.
+default_functions["mlist_to_hlist"] = node.mlist_to_hlist
+callback.create_callback("pre_mlist_to_hlist_filter", "list")
+callback.create_callback("post_mlist_to_hlist_filter", "reverselist")
+callback_register("mlist_to_hlist", function(head, ...)
     -- pre_mlist_to_hlist_filter
-    local new_head = luatexbase.call_callback("pre_mlist_to_hlist_filter", head, ...)
+    local new_head = callback.call_callback("pre_mlist_to_hlist_filter", head, ...)
     if new_head == false then
         node.flush_list(head)
         return nil
@@ -234,18 +324,12 @@ callback.register("mlist_to_hlist", function(head, ...)
         head = new_head
     end
 
-    -- mlist_to_hlist (exclusive callback)
-    local functions = callback_functions["mlist_to_hlist"]
-    if functions then
-        -- the callback has been defined
-        head = functions[1](head, ...)
-    else
-        -- standard luatex behavior
-        head = node.mlist_to_hlist(head, ...)
-    end
+    -- mlist_to_hlist means either added functions or standard luatex behavior
+    -- of node.mlist_to_hlist (handled by default function)
+    head = callback.call_callback("mlist_to_hlist", head, ...)
 
     -- post_mlist_to_hlist_filter
-    new_head = luatexbase.call_callback("post_mlist_to_hlist_filter", head, ...)
+    new_head = callback.call_callback("post_mlist_to_hlist_filter", head, ...)
     if new_head == false then
         node.flush_list(head)
         return nil
@@ -254,3 +338,18 @@ callback.register("mlist_to_hlist", function(head, ...)
     end
     return head
 end)
+
+-- Compatibility with LaTeX through luatexbase namespace. Needed for
+-- luaotfload.
+luatexbase = {
+    registernumber = registernumber,
+    attributes = attributes,
+    new_attribute = alloc.new_attribute,
+
+    callback_descriptions = callback.callback_descriptions,
+    create_callback = callback.create_callback,
+    add_to_callback = callback.add_to_callback,
+    remove_from_callback = callback.remove_from_callback,
+    call_callback = callback.call_callback,
+    callbacktypes = {}
+}
