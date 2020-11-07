@@ -91,25 +91,9 @@
 
 \_def\_loadpattrs#1 #2 #3 {%
    \_wlog{Loading hyphenation #3: (#1) \_string\language=#2}%
-   \_directlua{
-      local function read_file(name)
-         local file = kpse.find_file(name) or tex.error("Can't find hyphenation "..
-               "file '"..name.."', perhaps you don't have the right package "..
-               "installed?")
-         local f = assert(io.open(file, "r"))
-         local data = assert(f:read("*a"))
-         f:close()
-         return data
-      end
-      local l = lang.new(#2)
-      for _, hyph in ipairs(string.explode("#1", ",")) do
-         local lname, plus = string.gsub(hyph, "+", "")
-         lang.patterns(l, read_file("hyph-"..lname..".pat.txt"))
-         if plus > 0 then % plus means "also load exceptions"
-            lang.hyphenation(l, read_file("hyph-"..lname..".hyp.txt"))
-         end
-      end
-    }%
+   \_ifnum\_lualoadpattrs #1 #2 = 0%
+      \_opwarning{Hyphenation patterns for #3 not loaded correctly, probably missing}
+   \_fi
 }
 
    \_doc -----------------------------

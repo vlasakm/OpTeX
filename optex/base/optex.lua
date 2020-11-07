@@ -17,6 +17,27 @@ function registernumber(name)
     return token.create(name).index
 end
 
+-- LANGUAGES
+
+local function read_file(name)
+    local file = assert(kpse.find_file(name))
+    local f = assert(io.open(file, "r"))
+    local data = assert(f:read("*a"))
+    f:close()
+    return data
+end
+
+local function load_patterns(hyph_utf8_spec, id)
+    local l = lang.new(id)
+    for _, hyph in ipairs(string.explode(hyph_utf8_spec, ",")) do
+        local lname, plus = string.gsub(hyph, "+", "")
+        lang.patterns(l, read_file("hyph-"..lname..".pat.txt"))
+        if plus > 0 then -- plus means "also load exceptions"
+            lang.hyphenation(l, read_file("hyph-"..lname..".hyp.txt"))
+        end
+    end
+end
+
 -- ALLOCATORS
 alloc = alloc or {}
 
@@ -337,6 +358,29 @@ callback_register("mlist_to_hlist", function(head, ...)
         head = new_head
     end
     return head
+end)
+
+-- Additional "primitives" in Lua
+
+local function_table = lua.get_functions_table()
+local luafnalloc = 0
+-- Allocator for lua functions
+local function define_lua_primitive(csname, fn)
+    luafnalloc = luafnalloc + 1
+    token.set_lua(csname, luafnalloc)
+    function_table[luafnalloc] = fn
+end
+
+-- Pattern loading using "lang" library.
+-- Intended usage: \_lualoadpattrs <hyph-utf8-spec>  <language-number>.
+-- Example         \_lualoadpattrs sh-cyrl+,sh-latn+ 238
+-- Expands to 0 on failure.
+define_lua_primitive("_lualoadpattrs", function()
+    if pcall(load_patterns, token.scan_word(), token.scan_int()) then
+        tex.sprint("1")
+    else
+        tex.sprint("0")
+    end
 end)
 
 -- Compatibility with LaTeX through luatexbase namespace. Needed for
