@@ -353,14 +353,60 @@ luatexbase = {
     callbacktypes = {}
 }
 --
--- `\tracingmacros` callback registered.
--- Use `\tracingmacros=3` or `\tracingmacros=4` if you want to see the result.
-callback.add_to_callback("input_level_string",
-   function(n)
-       if tex.tracingmacros > 3 then
-          return "[" .. n .. "] "
-       elseif tex.tracingmacros > 2 then
-          return "~" .. string.rep(".",n)
-       end
-   end
-)
+-- Emulate `\tracingstacklevels` in LuaTeX.
+-- TODO: Check other uses of `print_input_level()` in LuaTeX.
+-- TODO: Is the use of input_ptr correct?
+-- XXX: Let LuaTeX pass contextual information to `input_level_string`
+-- callback, so it is possible to differentiate different input level strings.
+-- XXX: The \"else" branch in `print_input_level` is inflexible and kind of
+-- useless, IMO.
+--
+callback.add_to_callback("input_level_string", function(input_ptr)
+    local tracing_stack_levels = tex.count["tracingstacklevels"]
+    if tracing_stack_levels > 0 then
+        if input_ptr < tracing_stack_levels then
+            return "~" .. string.rep(".", input_ptr)
+        else
+            return "~~"
+            -- after this LuaTeX  shouldn't do "token_show(ref_count)", but this
+            -- is currently not possible
+        end
+    else
+        return ""
+    end
+end)
+--
+local filetypes_left = { "(", "{", "<", "<", "<<" }
+local filetypes_right = { ")", "}", ">", ">", ">>" }
+local input_ptr = 1 -- one file is already opened before the first callback
+--
+callback.add_to_callback("start_file", function(category, name)
+    -- Standard "(filename.tex", although it is not possible to handle
+    -- everything like the engine can (see "report_start_file" in
+    -- luatexcallbackids.h).
+    texio.write(filetypes_left[category] .. name)
+
+    input_ptr = input_ptr + 1
+
+    -- If this is TeX input file (category is 1) and tracing stack levels is
+    -- active, we also print the input file name again, but on a separate line
+    -- and with indentation.
+    local tracing_stack_levels = tex.count["tracingstacklevels"]
+    if category == 1 and tracing_stack_levels > 0 then
+        local v = input_ptr - 1
+        local prefix
+        if v < tracing_stack_levels then
+            prefix = "~" .. string.rep(".", v)
+        else
+            prefix = "~~"
+        end
+        texio.write_nl(prefix .. "INPUT " .. name)
+    end
+
+end)
+--
+callback.add_to_callback("stop_file", function(category)
+    texio.write(filetypes_right[category])
+
+    input_ptr = input_ptr - 1
+end)
