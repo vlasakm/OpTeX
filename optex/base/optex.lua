@@ -215,12 +215,12 @@ function callback.add_to_callback(name, fn, description)
         --     (mlist_to_hlist)
     elseif callback_types[name] then
         -- This is a standard luatex callback with first function being added,
-        -- register a proxy function as a real callback. Assert, so we know
-        -- when things break, like when callbacks get redefined by future
-        -- luatex.
-        assert(callback_register(name, function(...)
+        -- register a proxy function as a real callback. Errors are silently
+        -- ignored (e.g. registering new callback on old LuaTeX will not raise
+        -- error).
+        callback_register(name, function(...)
             return call_callback(name, ...)
-        end))
+        end)
     else
         err("cannot add to callback '"..name.."' - no such callback exists")
     end
