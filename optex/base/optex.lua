@@ -375,14 +375,12 @@ end)
 -- achieve colors and possibly more).
 callback.create_callback("pre_shipout_filter", "list")
 
-local tex_setbox = tex.setbox
+local tex_getbox = tex.getbox
 local token_scanint = token.scan_int
-local token_scanlist = token.scan_list
 define_lua_command("_preshipout", function()
     local boxnum = token_scanint()
-    local head = token_scanlist()
-    head = call_callback("pre_shipout_filter", head)
-    tex_setbox(boxnum, head)
+    local head = tex_getbox(boxnum)
+    call_callback("pre_shipout_filter", head)
 end)
 --
 -- Compatibility with \LaTeX/ through luatexbase namespace. Needed for
