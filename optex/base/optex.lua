@@ -579,6 +579,10 @@ function optex_hook_into_luaotfload()
     local token_setmacro = token.set_macro
     local color_count = registernumber("_colorcnt")
     local tex_getcount, tex_setcount = tex.getcount, tex.setcount
+    if not luaotfload.set_colorhandler then
+        -- old luaotfload, colored fonts will be broken
+        return
+    end
     luaotfload.set_colorhandler(function(head, n, rgbcolor) -- rgbcolor = "1 0 0 rg"
         local attr = tonumber(token_getmacro("_color::"..rgbcolor))
         if not attr then
