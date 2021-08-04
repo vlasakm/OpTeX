@@ -89,7 +89,15 @@
       \_fontname \_cs{_ten\_whatresize} \_relax\_space \_sizespec \_relax
 }
 \_let\_doresizefont=\_doresizetfmfont
-\_def\_logfont#1{} % default is no logging of used fonts
+% default is no logging of used fonts,
+% but we do a sanity check for missing preloaded fonts
+\_def\_logfont#1{%
+   \_ifx#1\_nullfont \_ifx\_initunifonts\_relax\_else
+      \_errorcontextlines=0
+      \_errmessage {No preloaded fonts and late or missing \_string\fontfam}%
+   \_fi\_fi
+   \_glet\_logfont\_ignoreit
+}
 
 \_def\_rfontskipat#1{\_ifx#1"\_ea\_rfskipatX \_else\_ea\_rfskipatN\_ea#1\_fi}
 \_def\_rfskipatX #1" #2\_relax{"\_whichtfm{#1}"}
