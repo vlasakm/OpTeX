@@ -1,0 +1,11 @@
+-- OpTeX Lua startup script
+-- Usage: optex --lua <this_file> <your_command_line>
+
+-- Don't wrap printed lines
+texconfig.max_print_line = 1000000
+
+-- Show our banner
+callback.register("start_run", function()
+    print(status.banner)
+    print("This is OpTeX (Olsak's Plain TeX), version <1.03+ Jun.2021>")
+end)

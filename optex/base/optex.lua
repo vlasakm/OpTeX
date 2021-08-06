@@ -412,6 +412,26 @@ callback.add_to_callback("input_level_string", function(n)
     end
 end, "_tracingmacros")
 --
+local filetypes = {
+    { left = " (", right = ")",  output = "term and log" }, -- tex
+    { left = "{",  right = "}",  output = "log" },          -- map
+    { left = "<",  right = ">",  output = "term and log" }, -- image
+    { left = "<",  right = ">",  output = "log" },          -- subset font
+    { left = "<<", right = ">>", output = "log" },          -- full font
+}
+callback.add_to_callback("start_file", function(category, name)
+    -- Standard "(filename.tex", although it is not possible to handle
+    -- everything like the engine can (see "report_start_file" in
+    -- luatexcallbackids.h).
+    local filetype = filetypes[category]
+    texio.write(filetype.output, filetype.left .. name)
+end)
+--
+callback.add_to_callback("stop_file", function(category)
+    local filetype = filetypes[category]
+    texio.write(filetype.output, filetype.right)
+end)
+--
 -- \medskip\secc[lua-colors] Handling of colors using attributes^^M
 --
 -- Because \LuaTeX/ doesn't do anything with attributes, we have to add meaning

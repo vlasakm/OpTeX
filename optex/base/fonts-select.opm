@@ -144,6 +144,7 @@
 
 \_def\_initunifonts {%
    \_directlua{%
+      default_log_level = -1 % no luaotfload logging
       require('luaotfload-main')
       luaotfload.main()
       optex_hook_into_luaotfload()
