@@ -94,6 +94,14 @@
 \_sdef{_color:0}{0 g}
 \_sdef{_color-s:0}{0 G}
 
+% negative color attribute values keep the current ("previous") color
+% In case of `\setbox0=\hbox{\keepcolor a} \Blue \box7` we want to ensure
+% that the attribute from blue gets applied to something, otherwise the
+% attribute change wouldn't be registered, hence the empty leaders.
+\_def\_keepcolor{\_colorattr=-1 }
+\_def\_forcecolor{\_leaders\_hrule height\_zo depth\_zo\_hskip\_zo }
+\_public \keepcolor \forcecolor ;
+
    \_doc -----------------------------
    We support concept of non-local color, i.e. all changes of the color
    attribute are global by setting \`\_colorprefix` to `\global`.

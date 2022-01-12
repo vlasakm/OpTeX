@@ -547,24 +547,26 @@ local function colorize(head, current, current_stroke)
         else
             local nonstroke_needed, stroke_needed = is_color_needed(head, n, id, subtype)
             local new = getattribute(n, color_attribute) or 0
-            local newcolor = nil
-            if current ~= new and nonstroke_needed then
-                newcolor = token_getmacro("_color:"..new)
-                current = new
-            end
-            if current_stroke ~= new and stroke_needed then
-                local stroke_color = token_getmacro("_color-s:"..current)
-                if stroke_color then
-                    if newcolor then
-                        newcolor = string_format("%s %s", newcolor, stroke_color)
-                    else
-                        newcolor = stroke_color
-                    end
-                    current_stroke = new
+            if new >= 0 then
+                local newcolor = nil
+                if current ~= new and nonstroke_needed then
+                    newcolor = token_getmacro("_color:"..new)
+                    current = new
                 end
-            end
-            if newcolor then
-                head = insertbefore(head, n, pdfliteral(newcolor))
+                if current_stroke ~= new and stroke_needed then
+                    local stroke_color = token_getmacro("_color-s:"..current)
+                    if stroke_color then
+                        if newcolor then
+                            newcolor = string_format("%s %s", newcolor, stroke_color)
+                        else
+                            newcolor = stroke_color
+                        end
+                        current_stroke = new
+                    end
+                end
+                if newcolor then
+                    head = insertbefore(head, n, pdfliteral(newcolor))
+                end
             end
         end
     end
