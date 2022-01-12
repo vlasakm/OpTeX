@@ -443,6 +443,7 @@ local getlist = direct.getlist
 local setlist = direct.setlist
 local getleader = direct.getleader
 local getattribute = direct.get_attribute
+local setattribute = direct.set_attribute
 local insertbefore = direct.insert_before
 local copy = direct.copy
 local traverse = direct.traverse
@@ -589,7 +590,6 @@ function optex_hook_into_luaotfload()
     if not luaotfload.set_colorhandler then
         return -- old luaotfload, colored fonts will be broken
     end
-    local setattribute = direct.set_attribute
     local token_setmacro = token.set_macro
     local color_count = registernumber("_colorcnt")
     local tex_getcount, tex_setcount = tex.getcount, tex.setcount
@@ -607,6 +607,28 @@ function optex_hook_into_luaotfload()
         return head, n
     end)
 end
+--
+-- Since colors are no longer whatsits, recoloring boxes has to be done through
+-- Lua. Recolorable nodes have the special value `-1` as the color attribute.
+local function recolor(head, new_color)
+    for n, id in traverse(head) do
+        if id == hlist_id or id == vlist_id then
+            recolor(getlist(n), new_color)
+        else
+            if getattribute(n, color_attribute) == -1 then
+                setattribute(n, color_attribute, new_color)
+            end
+        end
+    end
+    return head
+end
+--
+-- Create recolor copy of the box and append it to TeX's current list.
+define_lua_command("_luarecoloredcopy", function()
+    local box = token.scan_int()
+    local new_color = tex.getattribute(color_attribute)
+    node.write(tonode(recolor(copy(todirect(tex.getbox(box))), new_color)))
+end)
 
    -- History:
    -- 2021-07-16 support for colors via attributes added

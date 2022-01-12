@@ -95,6 +95,20 @@
 \_sdef{_color-s:0}{0 G}
 
    \_doc -----------------------------
+   Something like `\Blue\box0` does not change color of anything in the box,
+   because the colors (attributes) are already frozen. For \"templates" that
+   are to be recolored several times, we define \`\_allowrecolor` (which uses
+   the special attribute value `-1`). It signalizes that certain material can
+   change color when the box is copied, though \`\recoloredcopy` has to be used
+   instead of `\copy`. You shouldn't use `\allowrecolor` without
+   \`\recoloredcopy`! The heavy lifting is done in Lua.
+   \_cod -----------------------------
+
+\_def\_allowrecolor{\_colorattr=-1 }
+\_def\_recoloredcopy{\_luarecoloredcopy}
+\_public \allowrecolor \recoloredcopy ;
+
+   \_doc -----------------------------
    We support concept of non-local color, i.e. all changes of the color
    attribute are global by setting \`\_colorprefix` to `\global`.
    \`\localcolor` is the default, i.e.\ \^`\_colorprefix` is `\relax`.\nl
