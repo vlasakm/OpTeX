@@ -423,6 +423,7 @@ end, "_tracingmacros")
 -- which allows adding different kinds of resources to a global page resources
 -- dictionary. Note that some resource types (fonts and XObjects) are already
 -- managed by \LuaTeX/ and shouldn't be added!
+--
 local pdfdict_mt = {
     __tostring = function(dict)
         local out = {"<<"}
@@ -450,14 +451,25 @@ function pdf.add_page_resource(type, name, value)
     end
     page_resources[type][name] = value
 end
-callback.add_to_callback("finish_pdffile", function()
+--
+define_lua_command("_addpageresource", function()
+    pdf.add_page_resource(token.scan_string(), token.scan_string(), token.scan_string())
+end)
+--
+-- We write the objects with resources to the PDF file in the `finish_pdffile`
+-- callback. But actually, since others might want to give us resources at that
+-- time (since maybe only then can one tell whether they are really used), we
+-- need to override the callback, and run our code {\em last}.
+default_functions["finish_pdffile"] = function() end
+callback_register("finish_pdffile", function()
+    -- first run everyone else
+    call_callback("finish_pdffile")
+
+    -- then run our code
     for type, dict in pairs(page_resources) do
         local obj = resource_dict_objects[type]
         pdf.immediateobj(obj, tostring(dict))
     end
-end)
-define_lua_command("_addpageresource", function()
-    pdf.add_page_resource(token.scan_string(), token.scan_string(), token.scan_string())
 end)
 --
 -- \medskip\secc[lua-colors] Handling of colors using attributes^^M
