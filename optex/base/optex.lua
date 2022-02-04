@@ -2,6 +2,8 @@
 
 -- The basic lua functions and declarations used in \OpTeX/ are here
 
+local fmt = string.format
+
 -- \medskip\secc General^^M
 --
 -- Define namespace where some \OpTeX/ functions will be added.
@@ -411,6 +413,52 @@ callback.add_to_callback("input_level_string", function(n)
         return ""
     end
 end, "_tracingmacros")
+-- \medskip\secc[lua-pdf-resources] Management of PDF page resources^^M
+--
+-- Traditionally, pdf\TeX/ allowed managing PDF page resources (graphics
+-- states, patterns, shadings, etc.) using a single toks register,
+-- `\pdfpageresources`. This is insufficient due to the expected PDF object
+-- structer and also because many \"packages" want to add page resources and
+-- thus fight for the access to that register. We add a finer alternative,
+-- which allows adding different kinds of resources to a global page resources
+-- dictionary. Note that some resource types (fonts and XObjects) are already
+-- managed by \LuaTeX/ and shouldn't be added!
+local pdfdict_mt = {
+    __tostring = function(dict)
+        local out = {"<<"}
+        for k, v in pairs(dict) do
+            out[#out+1] = fmt("/%s %s", tostring(k), tostring(v))
+        end
+        out[#out+1] = ">>"
+        return table.concat(out, "\n")
+    end,
+}
+local function pdf_dict(t)
+    return setmetatable(t or {}, pdfdict_mt)
+end
+--
+local resource_dict_objects = {}
+local page_resources = {}
+function pdf.add_page_resource(type, name, value)
+    local resources = page_resources[type]
+    if not resources then
+        local obj = pdf.reserveobj()
+        pdf.setpageresources(fmt("%s /%s %d 0 R", pdf.getpageresources() or "", type, obj))
+        resource_dict_objects[type] = obj
+        resources = pdf_dict()
+        page_resources[type] = resources
+    end
+    page_resources[type][name] = value
+end
+callback.add_to_callback("finish_pdffile", function()
+    for type, dict in pairs(page_resources) do
+        local obj = resource_dict_objects[type]
+        pdf.immediateobj(obj, tostring(dict))
+    end
+end)
+define_lua_command("_addpageresource", function()
+    pdf.add_page_resource(token.scan_string(), token.scan_string(), token.scan_string())
+end)
 --
 -- \medskip\secc[lua-colors] Handling of colors using attributes^^M
 --
@@ -447,7 +495,6 @@ local insertbefore = direct.insert_before
 local copy = direct.copy
 local traverse = direct.traverse
 local one_bp = tex.sp("1bp")
-local string_format = string.format
 --
 -- The attribute for coloring is allocated in `colors.opm`
 local color_attribute = registernumber("_colorattr")
@@ -556,7 +603,7 @@ local function colorize(head, current, current_stroke)
                 local stroke_color = token_getmacro("_color-s:"..current)
                 if stroke_color then
                     if newcolor then
-                        newcolor = string_format("%s %s", newcolor, stroke_color)
+                        newcolor = fmt("%s %s", newcolor, stroke_color)
                     else
                         newcolor = stroke_color
                     end
