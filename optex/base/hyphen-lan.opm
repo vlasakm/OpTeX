@@ -34,6 +34,7 @@
 \_def\_langlist{en(USenglish)}
 \_sdef{_lan:0}{en}
 \_sdef{_ulan:usenglish}{en}
+\_sdef{_nlan:en}{usenglish}
 \_def\_enlang{\_uselang{en}\_enPatt23} % \lefthyph=2 \righthyph=3
 \_def\enlang{\_enlang}
 \_sdef{_langspecific:en}{\_nonfrenchspacing}
@@ -49,6 +50,7 @@
    \chardef\_<iso-code>Patt = <number>
    \def\_lan:<number> {<iso-code>}
    \def\_ulan:<long-lang> {<iso-code>}
+   \def\_nlan:<iso-code> {<long-lang>}
    \def\_<iso-code>lang {%
       \_loadpattrs <hyph-file-spec> <number> <long-lang> % loads patterns using Lua code
       \gdef\_<iso-code>lang {\_uselang{<iso-code>}\_<iso-code>Patt <pre-hyph><post-hyph>}
@@ -63,7 +65,7 @@
 
 \_def\_preplang #1 #2 #3 #4 #5 {%
    \_ea\_chardef \_csname _#1Patt\_endcsname=#4
-   \_sdef{_lan:#4}{#1}\_lowercase{\_sdef{_ulan:#2}}{#1}%
+   \_sdef{_lan:#4}{#1}\_lowercase{\_sdef{_ulan:#2}}{#1}\_lowercase{\_sdef{_nlan:#1}{#2}}%
    \_def\_next{\_ea\_noexpand\_csname _#1lang\_endcsname}%
    \_ea\_edef \_csname _#1lang\_endcsname {%
       \_noexpand\_loadpattrs #3 #4 #2 % loads patterns
@@ -104,11 +106,11 @@
       \_setctable\_optexcatcodes
       \_language=#2\_def\\{#3}%
       \_let\patterns=\_patterns \_let\hyphenation=\_hyphenation \_def\message##1{}%
-      \_loadpattrsA #1,,%
+      \_loadpattrsA #1,\_end,%
       \_langinput{\_cs{_lan:#2}}%
    }\_endgroup
 }
-\_def\_loadpattrsA #1,{\_ifx,#1,\_else
+\_def\_loadpattrsA #1,{\_ifx\_end#1\_else
    \_isfile {hyph-#1}\_iftrue \_input{hyph-#1}%
    \_else \_opwarning{No hyph. patterns #1 for \\, missing package?}%
           \_def\_opwarning##1{}\_fi
