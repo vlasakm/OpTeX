@@ -1,6 +1,6 @@
 % This is macro package used by OpTeX, see http://petr.olsak.net/optex
 
-\_codedecl \tikzpicture {TikZ for OpTeX <2021-07-15>}
+\_codedecl \tikzpicture {TikZ for OpTeX <2022-02-11>}
 \_namespace{tikzopm}
 \_catcode`\@=11
 
@@ -12,8 +12,6 @@
    First we load TikZ itself.
 
    \_cod
-
-\_load[plain-at]
 
 %tikz.tex
 %  pgf.tex
@@ -197,10 +195,10 @@
 
 % Font stuff, unchanged
 
-\def\pgfutil@font@tiny{\fam\z@\fiverm}            % How to do this correctly?
-\def\pgfutil@font@scriptsize{\fam\z@\sevenrm}
+\def\pgfutil@font@tiny{\fam\zo\fiverm}            % How to do this correctly?
+\def\pgfutil@font@scriptsize{\fam\zo\sevenrm}
 \def\pgfutil@font@footnotesize{\rm}
-\def\pgfutil@font@small{\fam\z@\ninerm}
+\def\pgfutil@font@small{\fam\zo\ninerm}
 \def\pgfutil@font@normalsize{\rm}
 \def\pgfutil@font@large{\rm}
 \def\pgfutil@font@Large{\rm}
@@ -250,7 +248,7 @@
 
 % Link to existing stuff, customized
 
-\let\pgfutil@voidb@x\voidbox
+\let\pgfutil@voidb@x=\voidbox
 \toksdef\pgfutil@toks@=0
 
 
@@ -305,21 +303,17 @@
 
 \_def\pgf@sys@pdf@mark@pos@pgfpageorigin{\pgfpointorigin}
 
+\_refdecl{%
+   \_def\.Xpgfsysmark#1#2#3{\_sdef{pgf@sys@pdf@mark@pos@#1}{\pgfqpoint{#2sp}{#3sp}}}%
+}
+
 \_def\pgfsys@markposition#1{%
-   \.initref
-   \_savepos
-  \_edef\.tmp{#1}%
-  \_ea\_wref\_ea\.Xpgfsysmark\_ea{\_ea{\.tmp}{\_the\_lastxpos}{\_the\_lastypos}}%
-}
-
-\_catcode`\#=12
-\_def\.initref{
    \_openref
-   \_refdecl{%
-      \_def\.Xpgfsysmark#1#2#3{\_sdef{pgf@sys@pdf@mark@pos@#1}{\pgfqpoint{#2sp}{#3sp}}}%
-   }%
+   \_savepos
+   \_edef\.tmp{#1}%
+   \_ea\_wref\_ea\.Xpgfsysmark\_ea{\_ea{\.tmp}{\_the\_lastxpos}{\_the\_lastypos}}%
 }
-% don't worry about reseting catcodes - we are at the end of \opinput'ed file
 
+% don't worry about reseting catcodes - we are at the end of \opinput'ed file
 \_endnamespace
 \_endcode
