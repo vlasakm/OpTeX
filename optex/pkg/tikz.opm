@@ -9,8 +9,9 @@
    `\load[tikz]` they expect `tikz.tex` to be loaded, but this file gets loaded
    instead. It does load `tikz.tex`, but also does fixups.
 
-   First we load TikZ itself.
-
+   We want to change some definitions in `pgfutil-plain.def` and
+   `pgfsys-luatex.def`. We need to do that in right times, so we manually
+   emulate some files from PGF to ensure we do things in the correct order.
    \_cod
 
 %tikz.tex
@@ -40,7 +41,7 @@
    similar to macros we actually need. But there are several differences.
    We don't want to load the output routine hack realized by
    `\input atbegshi.sty\relax \AtBeginShipout{...}` in `pgfutil-plain.def`.
-   This is the reason why we re-define `\input` temporarily. 
+   This is the reason why we re-define `\input` temporarily.
    \_cod
 
 \def\input#1\relax{}
@@ -48,6 +49,7 @@
 \_input pgfutil-plain.def
 \let\input=\_input
 \let\AtBeginShipout=\_undefined
+\let\end=\_end
 
    \_doc
    More changes should be done for macros loaded from `pgfutil-plain.def`.
@@ -67,7 +69,7 @@
 
 % Font stuff, \_typosize to fixed sizes used, math fonts are scaled too
 
-\def\pgfutil@font@tiny{\_typosize[5/]}            % How to do this correctly?
+\def\pgfutil@font@tiny{\_typosize[5/]}
 \def\pgfutil@font@scriptsize{\_typosize[7/]}
 \def\pgfutil@font@footnotesize{\_typosize[8/]}
 \def\pgfutil@font@small{\_typosize[9/]}
@@ -77,7 +79,10 @@
 \def\pgfutil@font@huge{\_typosize[20.74/]}
 \def\pgfutil@font@Huge{\_typosize[24.88/]}
 
-%
+\def\pgfutil@font@normalfont{\_rm}
+\def\pgfutil@font@itshape{\_it}
+\def\pgfutil@font@bfseries{\_bf}
+\def\pgfutil@selectfont{\_currvar}
 
    \_doc
    PGF's `\pgfutil@everybye` hooks into `\end`, but normally \OpTeX/ uses the
@@ -86,24 +91,6 @@
    \_cod
 
 \_addto\_byehook{\_the\pgfutil@everybye}
-
-
-% The following is still messy and needs to be cleanup up (everything
-% prefixed by pgfutil@):, unchanged
-
-%\def\PackageInfo#1#2{}
-%\def\PackageWarning#1#2{\immediate\write17{Package #1: Warning! #2.}}%
-%\def\PackageError#1#2#3{\immediate\write17{Package #1: Error! #2.}}%
-\long\def\AtBeginDocument#1{#1}%
-
-% pgfcalendar uses translations
-
-\def\pgfutil@translate#1{#1} % is there a translator package for plain?
-
-% e-TeX primitives
-
-\let\pgfutil@protected\protected
-\let\pgfutil@unexpanded\unexpanded
 
    \_doc
    Make PGF/TikZ use our PDF resource management. Our functions expect split
@@ -125,6 +112,9 @@
 \_input tikz.code.tex
 
    \_doc
+   More changes should be done for macros loaded from `pgfsys-luatex.def`.
+   These changes follows.
+
    There is a general disagreement about the use/meaning of `\hoffset` and
    `\voffset` -- \LaTeX/, the \LaTeX/ `crop`
    package\fnote{\url{https://www.ctan.org/pkg/crop}}, TikZ, and \OpTeX/ all
