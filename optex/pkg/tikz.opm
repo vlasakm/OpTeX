@@ -17,6 +17,7 @@
 %  pgf.tex
 %    pgfrcs.tex
 %      pgfutil-common.tex
+%        pgfutil-common-lists.tex
 %      pgfutil-plain.tex
 %      pgfrcs.code.tex
 %    pgfcore.tex
@@ -34,6 +35,24 @@
 \def\pgfrcsincluded{}
 \input pgfutil-common.tex
 
+   \_doc
+   We load macros from `pgfutil-plain.def` because they are most
+   similar to macros we actually need. But there are several differences.
+   We don't want to load the output routine hack realized by
+   `\input atbegshi.sty\relax \AtBeginShipout{...}` in `pgfutil-plain.def`.
+   This is the reason why we re-define `\input` temporarily. 
+   \_cod
+
+\def\input#1\relax{}
+\def\AtBeginShipout#1{}
+\_input pgfutil-plain.def
+\let\input=\_input
+\let\AtBeginShipout=\_undefined
+
+   \_doc
+   More changes should be done for macros loaded from `pgfutil-plain.def`.
+   These changes follows.
+   \_cod
 
 % Writing to auxiliary files, customized
 
@@ -41,201 +60,24 @@
 \_def\pgfutil@writetoaux#1{}
 
 
-% Colors, unchaged
-
-\def\pgfutil@definecolor#1#2#3{\csname pgfutil@emu@#2\endcsname{#1}#3\@nil}
-
-\def\pgfutil@emu@rgb#1#2,#3,#4\@nil{\expandafter\def\csname\string\color@#1\endcsname{\xcolor@{}{}{rgb}{#2,#3,#4}}}
-\def\pgfutil@emu@gray#1#2\@nil{\expandafter\def\csname\string\color@#1\endcsname{\xcolor@{}{}{rgb}{#2,#2,#2}}}
-\def\pgfutil@emu@RGB#1#2,#3,#4\@nil{%
-    \begingroup
-    \pgfmathdivide@{#2}{255}\let\pgfutil@emu@RGB@r\pgfmathresult
-    \pgfmathdivide@{#3}{255}\let\pgfutil@emu@RGB@g\pgfmathresult
-    \pgfmathdivide@{#4}{255}\let\pgfutil@emu@RGB@b\pgfmathresult
-    \edef\pgf@marshal{\def\expandafter\noexpand\csname\string\color@#1\endcsname{%
-        \noexpand\xcolor@{}{}{rgb}{\pgfutil@emu@RGB@r,\pgfutil@emu@RGB@g,\pgfutil@emu@RGB@b}}}%
-    \expandafter\endgroup\pgf@marshal
-}
-
-\pgfutil@definecolor{white}{gray}{1}
-\pgfutil@definecolor{black}{gray}{0}
-\pgfutil@definecolor{gray}{gray}{0.5}
-\pgfutil@definecolor{red}{rgb}{1,0,0}
-\pgfutil@definecolor{green}{rgb}{0,1,0}
-\pgfutil@definecolor{blue}{rgb}{0,0,1}
-\pgfutil@definecolor{cyan}{rgb}{0,1,1}
-\pgfutil@definecolor{magenta}{rgb}{1,0,1}
-\pgfutil@definecolor{yellow}{rgb}{1,1,0}
-\pgfutil@definecolor{orange}{rgb}{1,0.5,0}
-\pgfutil@definecolor{violet}{rgb}{0.5,0,0.5}
-\pgfutil@definecolor{purple}{rgb}{0.75,0,0.25}
-\pgfutil@definecolor{brown}{rgb}{0.75,0.5,0.25}
-
-\def\pgfutil@color#1{%
-  \pgfutil@colorlet{.}{#1}%
-  \pgfsysprotocol@getcurrentprotocol\pgfutil@emu@temp%
-  {%
-    \pgfsysprotocol@setcurrentprotocol\pgfutil@empty%
-    \pgfsysprotocol@bufferedtrue%
-    \pgfsetcolor{.}%
-    \expandafter\pgfsys@outerinvoke\expandafter{\pgfsysprotocol@currentprotocol}%
-  }%
-  \pgfsysprotocol@setcurrentprotocol\pgfutil@emu@temp%
-  \aftergroup\pgfutil@reset@color%
-}
-
-\def\pgfutil@extractcolorspec#1#2{%
-  \def#2{{#1}}%
-}
-
-\def\pgfutil@convertcolorspec#1#2#3{%
-  \edef#3{\expandafter\expandafter\expandafter\pgfutil@emu@select\csname\string\color@#1\endcsname}%
-}
-
-\def\pgfutil@doifcolorelse#1#2#3{%
-  \expandafter\ifx\csname\string\color@#1\endcsname\relax%
-    \let\pgf@next=\pgfutil@secondoftwo%
-  \else
-    \let\pgf@next=\pgfutil@firstoftwo%
-  \fi%
-  \pgf@next{#2}{#3}%
-}
-
-\def\pgfutil@reset@color{%
-  \pgfsysprotocol@getcurrentprotocol\pgfutil@emu@temp%
-  {%
-    \pgfsysprotocol@setcurrentprotocol\pgfutil@empty%
-    \pgfsysprotocol@bufferedtrue%
-    \pgfsetcolor{.}%
-    \expandafter\pgfsys@outerinvoke\expandafter{\pgfsysprotocol@currentprotocol}%
-  }%
-  \pgfsysprotocol@setcurrentprotocol\pgfutil@emu@temp%
-}
-\expandafter\def\csname\string\color@.\endcsname{\xcolor@{}{}{rgb}{0,0,0}}
-
-\def\pgfutil@colorlet#1#2{%
-  \edef\pgf@marshal{#2}%
-  \expandafter\pgfutil@in@\expandafter!\expandafter{\pgf@marshal}%
-  \ifpgfutil@in@%
-    % compute mixture
-    {%
-      \expandafter\pgfutil@emu@mix\pgf@marshal!white!\@nil%
-      \xdef\pgf@marshal{\noexpand\def\expandafter\noexpand\csname\string\color@#1\endcsname{%
-          \noexpand\xcolor@{}{}{rgb}{\pgf@sys@tonumber\pgf@xa,\pgf@sys@tonumber\pgf@xb,\pgf@sys@tonumber\pgf@xc}}}%
-    }%
-    \pgf@marshal%
-  \else%
-    \edef\pgf@marshal{\noexpand\let\expandafter\noexpand\csname\string\color@#1\endcsname=%
-                      \expandafter\noexpand\csname\string\color@#2\endcsname}%
-    \pgf@marshal%
-  \fi%
-}
-\def\pgfutil@emu@mix#1!#2!#3!#4\@nil{%
-  \expandafter\expandafter\expandafter\pgfutil@emu@unpack\csname\string\color@#1\endcsname%
-  \pgf@ya=\pgf@xa%
-  \pgf@yb=\pgf@xb%
-  \pgf@yc=\pgf@xc%
-  \expandafter\expandafter\expandafter\pgfutil@emu@unpack\csname\string\color@#3\endcsname%
-  \c@pgf@counta=#2\relax%
-  \c@pgf@countb=100\relax%
-  \advance\c@pgf@countb by-\c@pgf@counta\relax%
-  \pgf@xa=\c@pgf@countb\pgf@xa%
-  \advance\pgf@xa by\c@pgf@counta\pgf@ya%
-  \divide\pgf@xa by 100\relax%
-  \pgf@xb=\c@pgf@countb\pgf@xb%
-  \advance\pgf@xb by\c@pgf@counta\pgf@yb%
-  \divide\pgf@xb by 100\relax%
-  \pgf@xc=\c@pgf@countb\pgf@xc%
-  \advance\pgf@xc by\c@pgf@counta\pgf@yc%
-  \divide\pgf@xc by 100\relax%
-}
-\def\pgfutil@emu@unpack#1#2#3#4#5{%
-  \pgfutil@emu@@unpack#5\@nil%
-}
-\def\pgfutil@emu@@unpack#1,#2,#3\@nil{%
-  \pgf@xa=#1pt%
-  \pgf@xb=#2pt%
-  \pgf@xc=#3pt%
-}
-
-\def\pgfutil@emu@select#1#2#3#4#5{#5}
-
-\let\definecolor=\pgfutil@definecolor
-\let\color=\pgfutil@color
-\let\colorlet=\pgfutil@colorlet
-\let\extractcolorspec=\pgfutil@extractcolorspec
-\let\convertcolorspec=\pgfutil@convertcolorspec
-
-\def\XC@tgt@mod#1{#1}
-\def\XC@sdef#1#2{\edef#1{#2}}
-\def\XC@mod@cmyk{cmyk}
-\def\XC@mod@rgb{rgb}
-
-
-% pgfutil@minipage, unchanged
-
-\def\pgfutil@minipage[#1]#2{%
-  \hbox to#2\bgroup%
-    \hsize=#2\relax%
-    \vbox\bgroup\noindent%
-}
-\def\pgfutil@endminipage{\egroup\egroup}
-
-
 % Driver detection, customized
 
 \def\pgfsysdriver{pgfsys-luatex.def}
 
 
-% Global colors, unchanged
+% Font stuff, \_typosize to fixed sizes used, math fonts are scaled too
 
-\let\pgfutil@globalcolorsfalse=\relax
-\let\pgfutil@globalcolorstrue=\relax
+\def\pgfutil@font@tiny{\_typosize[5/]}            % How to do this correctly?
+\def\pgfutil@font@scriptsize{\_typosize[7/]}
+\def\pgfutil@font@footnotesize{\_typosize[8/]}
+\def\pgfutil@font@small{\_typosize[9/]}
+\def\pgfutil@font@normalsize{\_typosize[10/]}
+\def\pgfutil@font@large{\_typosize[12/]}
+\def\pgfutil@font@Large{\_typosize[14.4/]}
+\def\pgfutil@font@huge{\_typosize[20.74/]}
+\def\pgfutil@font@Huge{\_typosize[24.88/]}
 
-
-% Font stuff, unchanged
-
-\def\pgfutil@font@tiny{\fam\zo\fiverm}            % How to do this correctly?
-\def\pgfutil@font@scriptsize{\fam\zo\sevenrm}
-\def\pgfutil@font@footnotesize{\rm}
-\def\pgfutil@font@small{\fam\zo\ninerm}
-\def\pgfutil@font@normalsize{\rm}
-\def\pgfutil@font@large{\rm}
-\def\pgfutil@font@Large{\rm}
-\def\pgfutil@font@huge{\rm}
-\def\pgfutil@font@Huge{\rm}
-
-\def\pgfutil@font@itshape{\it}
-\def\pgfutil@font@bfseries{\bf}
-
-\let\pgfutil@font@normalfont=\rm
-
-\let\pgfutil@selectfont=\rm
-
-
-% Extra counters, registers, boxes, unchanged
-
-\newcount\pgfutil@tempcnta
-\newcount\pgfutil@tempcntb
-
-\newbox\pgfutil@tempboxa
-
-\let\pgfmath@tempdima\pgfutil@tempdima
-\let\pgfmath@tempdima\pgfutil@tempdima
-\let\pgfmath@tempcnta\pgfutil@tempcnta
-\let\pgfmath@tempcntb\pgfutil@tempcntb
-
-% From LaTeX
-\newskip\pgfutil@flushglue
-\pgfutil@flushglue=0pt plus 1fil
-
-
-% Module stuff, unchanged
-
-\def\pgfutil@usemodule#1{\input #1.tex}
-
-
-% End of file stuff, customized
+%
 
    \_doc
    PGF's `\pgfutil@everybye` hooks into `\end`, but normally \OpTeX/ uses the
@@ -244,12 +86,6 @@
    \_cod
 
 \_addto\_byehook{\_the\pgfutil@everybye}
-
-
-% Link to existing stuff, customized
-
-\let\pgfutil@voidb@x=\voidbox
-\toksdef\pgfutil@toks@=0
 
 
 % The following is still messy and needs to be cleanup up (everything
