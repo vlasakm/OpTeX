@@ -82,7 +82,7 @@
 \def\pgfutil@font@normalfont{\_rm}
 \def\pgfutil@font@itshape{\_it}
 \def\pgfutil@font@bfseries{\_bf}
-\def\pgfutil@selectfont{\_currvar}
+\def\pgfutil@selectfont{\_rm}
 
    \_doc
    PGF's `\pgfutil@everybye` hooks into `\end`, but normally \OpTeX/ uses the
@@ -102,7 +102,9 @@
 \_def\pgfutil@addpdfresource@extgs#1{\_addpageresource{ExtGState}\.kvsplit#1\_end}
 \_def\pgfutil@addpdfresource@colorspaces#1{\_addpageresource{ColorSpace}\.kvsplit#1\_end}
 \_def\pgfutil@addpdfresource@patterns#1{\_addpageresource{Pattern}\.kvsplit#1\_end}
-\_let\pgfutil@setuppdfresources=\relax
+\_let\pgfutil@setuppdfresources=\_relax
+\_let\pgf@sys@pdf@check@resources=\_relax
+\_def\pgf@sys@pdf@possible@resources{\_pageresources}
 
 \_input pgfrcs.code.tex
 \ProvidesPackageRCS{pgf.tex}
