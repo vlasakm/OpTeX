@@ -3,6 +3,7 @@
 \_codedecl \tikzpicture {TikZ for OpTeX <2022-02-11>}
 \_namespace{tikzopm}
 \_catcode`\@=11
+\_let\z@=\_zo
 
    \_doc
    This package is \OpTeX/'s compatibility layer for PGF/TikZ. When users do
