@@ -323,12 +323,17 @@
 
    The macro \`\addextgstate``{<PDF name>}{<PDF dictionary>}` is a use of that
    general mechanism and shall be used for adding more graphics states. It must
-   be used {\em after} `\dump`.
+   be used {\em after} `\dump`. It's general variant defined in Lua is
+   \`\addpageresource``{resource type}{<PDF name>}{PDF dictionary}`. You can
+   use \`\pageresources` if you need to insert resource entries to manually
+   created PDF XObjects.
    \_cod -----------------------------
 
 \_def\_addextgstate{\_addpageresource{ExtGState}}
 
 \_public \addextgstate ;
+\_def\pageresources{\_pageresources}
+\_def\addpageresource{\_addpageresource}
 
    \_doc -----------------------------
    A shadow effect is implemented here. The shadow is equal to the
