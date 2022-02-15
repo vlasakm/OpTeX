@@ -455,6 +455,9 @@ end
 define_lua_command("_addpageresource", function()
     pdf.add_page_resource(token.scan_string(), token.scan_string(), token.scan_string())
 end)
+define_lua_command("_pageresources", function()
+    tex.print(pdf.getpageresources() or "")
+end)
 --
 -- We write the objects with resources to the PDF file in the `finish_pdffile`
 -- callback. But actually, since others might want to give us resources at that
