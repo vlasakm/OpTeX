@@ -449,7 +449,7 @@ function pdf.add_page_resource(type, name, value)
         resources = pdf_dict()
         page_resources[type] = resources
     end
-    page_resources[type][name] = value
+    resources[name] = value
 end
 --
 -- New \"pseudo" primitives are introduced.
