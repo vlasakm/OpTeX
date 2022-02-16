@@ -324,9 +324,9 @@
    The macro \`\addextgstate``{<PDF name>}{<PDF dictionary>}` is a use of that
    general mechanism and shall be used for adding more graphics states. It must
    be used {\em after} `\dump`. It's general variant defined in Lua is
-   \`\addpageresource``{resource type}{<PDF name>}{PDF dictionary}`. You can
-   use \`\pageresources` if you need to insert resource entries to manually
-   created PDF XObjects.
+   \^`\_addpageresource` `{<resource type>}{<PDF name>}{<PDF dictionary>}`. You can
+   use `\pageresources` or \^`\_pageresources` if you need to insert resource
+   entries to manually created PDF XObjects.
    \_cod -----------------------------
 
 \_def\_addextgstate{\_addpageresource{ExtGState}}
@@ -446,4 +446,3 @@ the \^`\transformbox{<transformation>}{\copy\mypic}`.
 2021-03-19: \inkinspic: pictures in subdirectories, bug fixed
 2020-12-21: \puttext: \box0 in goup, bugfix
 2020-04-12: \_public \clipinoval \clipincircle ; added, bug fixed
-

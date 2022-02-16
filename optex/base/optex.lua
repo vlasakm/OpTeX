@@ -452,6 +452,10 @@ function pdf.add_page_resource(type, name, value)
     page_resources[type][name] = value
 end
 --
+-- New \"pseudo" primitives are introduced.
+-- \`\_addpageresource``{<type>}{<PDF name>}{<PDF dict>}` adds more resources
+-- of given resource <type> to our data structure.
+-- \`\_pageresources` expands to the saved <type>s and object numbers.
 define_lua_command("_addpageresource", function()
     pdf.add_page_resource(token.scan_string(), token.scan_string(), token.scan_string())
 end)
